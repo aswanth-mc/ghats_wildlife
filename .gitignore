@@ -1,0 +1,102 @@
+# ===============================
+# Python & Virtual Environments
+# ===============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ===============================
+# Django
+# ===============================
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+media/
+staticfiles/
+
+# Environment Variables & Secrets
+.env
+.env.local
+.env.*.local
+
+# ===============================
+# Spatial Data, GIS & Analytics
+# ===============================
+# Large raw datasets, downloaded shapefiles, and exports
+data/raw/
+data/processed/
+*.shp
+*.shx
+*.dbf
+*.prj
+*.cpg
+*.geojson
+*.kml
+*.kmz
+*.tif
+*.tiff
+*.geotiff
+*.csv
+*.tsv
+*.parquet
+
+# Jupyter / IPython Notebooks
+.ipynb_checkpoints
+*-checkpoint.ipynb
+
+# ===============================
+# Editors & IDEs
+# ===============================
+# VS Code / Cursor
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# PyCharm / JetBrains
+.idea/
+
+# Obsidian / Local notes
+.obsidian/
+
+# ===============================
+# Operating System Files
+# ===============================
+# Linux
+*~
+.directory
+.Trash-*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
