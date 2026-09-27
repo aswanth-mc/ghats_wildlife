@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Western Ghats Wildlife Corridor & Conflict Map</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; height: 100vh; background: #0f172a; color: #f8fafc; }
+        
+        #sidebar {
+            width: 320px;
+            padding: 24px;
+            background: #1e293b;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            box-shadow: 2px 0 12px rgba(0,0,0,0.3);
+            z-index: 1000;
+        }
+
+        h2 { font-size: 1.25rem; color: #38bdf8; }
+        .subtitle { font-size: 0.85rem; color: #94a3b8; }
+
+        .stat-card {
+            background: #0f172a;
+            border-radius: 8px;
+            padding: 16px;
+            border-left: 4px solid #38bdf8;
+        }
+        .stat-card.alert { border-left-color: #ef4444; }
+        .stat-title { font-size: 0.75rem; text-transform: uppercase; color: #64748b; font-weight: 600; }
+        .stat-value { font-size: 1.8rem; font-weight: 700; margin-top: 4px; }
+
+        .legend { font-size: 0.85rem; display: flex; flex-direction: column; gap: 8px; }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .badge { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+
+        #map { flex-grow: 1; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <div id="sidebar">
+        <div>
+            <h2>Western Ghats Hotspots</h2>
+            <p class="subtitle">DBSCAN Spatial Cluster Monitor</p>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-title">Total Processed Sightings</div>
+            <div class="stat-value">{{ total_sightings }}</div>
+        </div>
+
+        <div class="stat-card">
+            <div class="stat-title">Active Hotspots Identified</div>
+            <div class="stat-value">{{ total_hotspots }}</div>
+        </div>
+
+        <div class="stat-card alert">
+            <div class="stat-title">Critical High Risk Zones</div>
+            <div class="stat-value">{{ high_risk_count }}</div>
+        </div>
+
+        <div class="legend">
+            <strong>Hotspot Risk Levels:</strong>
+            <div class="legend-item"><span class="badge" style="background: #ef4444;"></span> High (≥10 incidents)</div>
+            <div class="legend-item"><span class="badge" style="background: #f59e0b;"></span> Moderate (5-9 incidents)</div>
+            <div class="legend-item"><span class="badge" style="background: #10b981;"></span> Low (3-4 incidents)</div>
+            <div class="legend-item"><span class="badge" style="background: #38bdf8; border-radius: 50%;"></span> Animal Sighting Point</div>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <script>
+        // Center on Western Ghats corridor region (Wayanad / Nilgiri belt)
+        const map = L.map('map').setView([11.6, 76.3], 8);
+
+        // OpenStreetMap Dark/Carto Tile Layer
+        // Free OpenStreetMap Standard Tiles (No API key required)
+L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data: &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors, <a href="http://viewfinderpanoramas.org">SRTM</a> | Map style: &copy; <a href="https://opentopomap.org">OpenTopoMap</a>',
+    maxZoom: 17
+}).addTo(map);
+
+        // Color mapping for risk levels
+        function getRiskColor(risk) {
+            if (risk === 'high') return '#ef4444';
+            if (risk === 'moderate') return '#f59e0b';
+            return '#10b981';
+        }
+
+        // 1. Fetch & Render Hotspot Polygons
+        fetch('/api/hotspots/')
+            .then(res => res.json())
+            .then(geojson => {
+                L.geoJSON(geojson, {
+                    style: function (feature) {
+                        const color = getRiskColor(feature.properties.risk_level);
+                        return {
+                            color: color,
+                            fillColor: color,
+                            fillOpacity: 0.35,
+                            weight: 2
+                        };
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const p = feature.properties;
+                        layer.bindPopup(`
+                            <strong>Hotspot Cluster #${p.cluster_id}</strong><br>
+                            Risk Level: <b style="text-transform:uppercase; color:${getRiskColor(p.risk_level)}">${p.risk_level}</b><br>
+                            Sightings Logged: <b>${p.incident_count}</b>
+                        `);
+                    }
+                }).addTo(map);
+            });
+
+        // 2. Fetch & Render Observation Points
+        fetch('/api/sightings/')
+            .then(res => res.json())
+            .then(geojson => {
+                L.geoJSON(geojson, {
+                    pointToLayer: function (feature, latlng) {
+                        return L.circleMarker(latlng, {
+                            radius: 5,
+                            fillColor: '#38bdf8',
+                            color: '#0284c7',
+                            weight: 1,
+                            opacity: 1,
+                            fillOpacity: 0.7
+                        });
+                    },
+                    onEachFeature: function (feature, layer) {
+                        const p = feature.properties;
+                        let content = `<strong>${p.common_name}</strong><br><em>${p.species}</em><br>Source: ${p.source}`;
+                        if (p.image_url) {
+                            content += `<br><img src="${p.image_url}" width="160" style="margin-top:6px;border-radius:4px;"/>`;
+                        }
+                        layer.bindPopup(content);
+                    }
+                }).addTo(map);
+            });
+    </script>
+</body>
+</html>
